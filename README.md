@@ -108,9 +108,190 @@ And with that, Lesson 2 is essentially complete! However, there's one more trick
 
 (The "test" script is there, wagging its finger at us, reminding us that it's always good to write tests. For now, we'll ignore it.)
 
-### lesson 3
+### lesson 3: Write the simple React components that structure the application UI.
 
-Write the simple React components that structure the application UI.
+It's like we're finally getting to the good stuff! Ok that other stuff was pretty great but we're on the third lesson and we haven't done anything with React yet! It's time.
+
+Depending on how much you already know about React and the ecosystem around it, there's a lot (and I mean A LOT) of discussion about how to best structure React applications and which tools you should use to build them. For now, we're going to step around that proverbial mud puddle and go the simple way, lifted from the [official React tutorial](https://facebook.github.io/react/docs/getting-started.html#quick-start-without-npm) with minimal modifications. This sets up our `public/index.html` file to include the React libraries and a browser-based compiler that will let you use the JSX syntax without any additional tools:
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>React Tutorial</title>
+    <!-- Not present in the tutorial. Just for basic styling. -->
+    <link rel="stylesheet" href="css/base.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.8/react.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.8/react-dom.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.6.16/browser.js"></script>
+  </head>
+  <body>
+    <div id="content"></div>
+    <script type="text/babel">
+      // We're going to put some React code RIGHT HERE!
+    </script>
+  </body>
+</html>
+```
+
+> How does it work? The browser version of babel will look for all `<script>` tags marked with a type of `text/babel` and process them before the browser tries to run them. Nifty, eh?
+
+So… It's time to start writing React. React is a library for making user interfaces. What user interface should we build? Let's start out by building a static weather card for Portland, OR. Something like this:
+
+```
++--------------------------------------+
+|                                      |
+|         Portland, Oregon             |
+|                                      |
+|      If it's not Summer, it's        |
+|  probably 45°F and raining lightly   |
+|                                      |
+|           7-day forecast             |
+|    Wed: 45°F and raining lightly     |
+|    Thu: 45°F and raining lightly     |
+|    Fri: 45°F and raining lightly     |
+|    Sat: 45°F and raining lightly     |
+|    Sun: 45°F and raining lightly     |
+|    Mon: 45°F and raining lightly     |
+|    Tue: 45°F and raining lightly     |
+|                                      |
++--------------------------------------+
+```
+
+Let's break that down into Components!
+
+```
+           Application Component
++--------------------------------------+
+| +----------------------------------+ |
+| |           Title Component        | |
+| +----------------------------------+ |
+|                                      |
+| +----------------------------------+ |
+| |        Description Component     | |
+| +----------------------------------+ |
+|                                      |
+| +----------------------------------+ |
+| |        Forecasts Component       | |
+| | +------------------------------+ | |
+| | |       Forecast Component     | | |
+| | +------------------------------+ | |
+| | |       Forecast Component     | | |
+| | +------------------------------+ | |
+| | |               ...            | | |
+| | +------------------------------+ | |
+| +----------------------------------+ |
++--------------------------------------+
+```
+
+Now we have an idea of what we're building. Let's start turning these into code:
+
+```js
+var Title = React.createClass({
+  // shh, I'm going to use fancy ES6 object syntax. this is the
+  // same as render: function() { .. }
+  render() {
+    return <h1>{this.props.city}</h1>;
+  }
+})
+```
+
+Here we have created a React class called `Title`. It has one method, `render`, which is the minimum definition of a valid React component. This method returns… HTML? What the heck? Ok it's JSX. If you wanted to, you could have written this as:
+
+```js
+var Title = React.createClass({
+  render() {
+    return React.createElement('h1', {}, this.props.city);
+  }
+})
+```
+
+Not too bad, but it gets cumbersome with time. Importantly, however, this is how React creates its representation of the Virtual DOM. In this case, that will consist of
+
+```js
+React.createElement(
+  'h1', // an <h1> tag
+  {},   // with no properties
+  this.props.city // containing one child, the value of this.props.city
+)
+```
+
+Here are some more simple classes, the `Description` and `Forecast` components:
+
+```js
+var Description = React.createClass({
+  render() {
+    return <h2>{this.props.description}</h2>;
+  }
+});
+
+var Forecast = React.createClass({
+  render() {
+    return <div>
+      {this.props.day}: {this.props.forecast}
+    </div>;
+  }
+});
+```
+
+Things start to get trickier, though, with the `Forecasts` component:
+
+```js
+var Forecasts = React.createClass({
+  render() {
+    return <div>
+      <h2>Your 7-day forecast:</h2>
+      <ul>
+        {/* React is really just JavaScript, so we have Array.prototype.map() here */}
+        {this.props.forecasts.map(
+          // Loop over the forecasts array, using the key property like good children
+          // Note this is a regular comment because we're not in a JSX element
+          forecast => <li key={forecast.day}><Forecast {...forecast}/></li>
+        )}
+      </ul>
+    </div>;
+  }
+});
+```
+
+Because React is just JavaScript, and we are being passed an array of forecasts for the upcoming week, we can just use `Array.prototype.map()` to transform the forecast *data* into forecast *UI*: this is the essence of what makes React so cool! Each element in the forecast array is turned into a `<Forecast>` component that will represent it in the DOM. :sparkles:
+
+> The `key` property, referenced in the cheeky comment above, helps React when it's updating the actual DOM from its virtual DOM. Maybe don't worry about it too much, but the key point here is that we have an array of child components, and React uses the key to distinguish amongst them.
+
+Now that we have all the pieces, let's put them together:
+
+```js
+var Application = React.createClass({
+  // shh, I'm going to use fancy ES6 object syntax. this is the
+  // same as render: function() { .. }
+  render() {
+    return <div>
+      {/* This is the way you write comments in JSX */}
+      <Title city="Portland, OR" />
+      <Description description="If it's not Summer, it's probably 45°F and raining lightly" />
+      {/* You can pass in JavaScript values as properties by enclosing in {} instead of "" */}
+      <Forecasts forecasts={[
+        {day: 'Wed', forecast: '45°F and raining lightly'},
+        {day: 'Thu', forecast: '45°F and raining lightly'},
+        {day: 'Fri', forecast: '45°F and raining lightly'},
+        {day: 'Sat', forecast: '45°F and raining lightly'},
+        {day: 'Sun', forecast: '45°F and raining lightly'},
+        {day: 'Mon', forecast: '45°F and raining lightly'},
+        {day: 'Tue', forecast: '45°F and raining lightly'},
+      ]}/>
+    </div>;
+  }
+});
+```
+
+All that's left is put our application into the DOM:
+
+```js
+// ReactDOM is responsible for taking React Components... and putting them into the DOM.
+// Find the <div id="content"/> and blat the React components into it:
+ReactDOM.render(<Application/>, document.getElementById('content'));
+```
 
 ### lesson 4
 

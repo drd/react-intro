@@ -21,5 +21,8 @@
   "bugs": {
     "url": "https://github.com/drd/react-intro/issues"
   },
-  "homepage": "https://github.com/drd/react-intro#readme"
+  "homepage": "https://github.com/drd/react-intro#readme",
+  "dependencies": {
+    "express": "^4.13.4"
+  }
 }

@@ -85,23 +85,34 @@ var Forecast = React.createClass({
 
 
 var Application = React.createClass({
+  // this is called by React when first instantiating the component
+  // the object returned by this will be available as `this.state`
+  // in render() and other lifecycle methods
+  getInitialState() {
+    return {
+      city: {
+        name: "Portland, OR",
+        geo: {
+          lat:    45.52,
+          long: -122.681
+        }
+      },
+      currentConditions: "", // empty, to be filled in by server
+      forecasts: [
+                             // empty, to be filled in by server
+      ]
+    };
+  },
+
   // shh, I'm going to use fancy ES6 object syntax. this is the
   // same as render: function() { .. }
   render() {
     return <div>
       {/* This is the way you write comments in JSX */}
-      <Title city="Portland, OR" />
-      <Description description="If it's not Summer, it's probably 45°F and raining lightly" />
+      <Title city={this.state.city.name} />
+      <Description description={this.state.currentConditions} />
       {/* You can pass in JavaScript values as properties by enclosing in {} instead of "" */}
-      <Forecasts forecasts={[
-        {day: 'Wed', forecast: '45°F and raining lightly'},
-        {day: 'Thu', forecast: '45°F and raining lightly'},
-        {day: 'Fri', forecast: '45°F and raining lightly'},
-        {day: 'Sat', forecast: '45°F and raining lightly'},
-        {day: 'Sun', forecast: '45°F and raining lightly'},
-        {day: 'Mon', forecast: '45°F and raining lightly'},
-        {day: 'Tue', forecast: '45°F and raining lightly'},
-      ]}/>
+      <Forecasts forecasts={this.state.forecasts}/>
     </div>;
   }
 });

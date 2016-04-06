@@ -43,6 +43,8 @@ Component breakdown:
 +--------------------------------------+
 */
 
+var DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 
 var Title = React.createClass({
   render() {
@@ -77,31 +79,69 @@ var Forecasts = React.createClass({
 
 var Forecast = React.createClass({
   render() {
+    var low = Math.round(this.props.low);
+    var high = Math.round(this.props.high);
+
     return <div>
-      {this.props.day}: {this.props.forecast}
+      {this.props.day}: Low: {low} High: {high}
     </div>;
   }
 });
 
 
 var Application = React.createClass({
+  // this is called by React when first instantiating the component
+  // the object returned by this will be available as `this.state`
+  // in render() and other lifecycle methods
+  getInitialState() {
+    return {
+      city: {
+        name: "Portland, OR",
+        geo: {
+          lat:    45.52,
+          long: -122.681
+        }
+      },
+      currentConditions: "", // empty, to be filled in by server
+      forecasts: [
+                             // empty, to be filled in by server
+      ]
+    };
+  },
+
+  // when a component is first inserted into the document, this lifecycle method is called:
+  componentDidMount() {
+    // TODO: replace API_KEY with your own: https://developer.forecast.io/
+    fetch('https://crossorigin.me/https://api.forecast.io/forecast/API_KEY/45.52,-122.681')
+      .then(function(response) {
+        return response.json();
+      }).then(json => {
+        this.setState({
+          currentConditions: `${parseInt(json.currently.temperature)}°F, ${json.currently.summary}`,
+          forecasts: json.daily.data.slice(0, 7).map(function(day) {
+            // construct JS date from time (milliseconds since epoch) and get day index
+            var weekday = new Date(day.time * 1e3).getDay();
+            return {
+              day: DAYS[weekday],
+              low: day.temperatureMin,
+              high: day.temperatureMax
+            };
+          })
+        });
+      }).catch(function(ex) {
+        console.error('parsing failed', ex);
+      });
+  },
+
   // shh, I'm going to use fancy ES6 object syntax. this is the
   // same as render: function() { .. }
   render() {
     return <div>
       {/* This is the way you write comments in JSX */}
-      <Title city="Portland, OR" />
-      <Description description="If it's not Summer, it's probably 45°F and raining lightly" />
+      <Title city={this.state.city.name} />
+      <Description description={this.state.currentConditions} />
       {/* You can pass in JavaScript values as properties by enclosing in {} instead of "" */}
-      <Forecasts forecasts={[
-        {day: 'Wed', forecast: '45°F and raining lightly'},
-        {day: 'Thu', forecast: '45°F and raining lightly'},
-        {day: 'Fri', forecast: '45°F and raining lightly'},
-        {day: 'Sat', forecast: '45°F and raining lightly'},
-        {day: 'Sun', forecast: '45°F and raining lightly'},
-        {day: 'Mon', forecast: '45°F and raining lightly'},
-        {day: 'Tue', forecast: '45°F and raining lightly'},
-      ]}/>
+      <Forecasts forecasts={this.state.forecasts}/>
     </div>;
   }
 });

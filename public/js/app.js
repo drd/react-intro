@@ -47,8 +47,12 @@ var DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 
 var Title = React.createClass({
+  changeMode() {
+    this.props.onChangeMode();
+  },
+
   render() {
-    return <h1>{this.props.city}</h1>;
+    return <h1 onClick={this.changeMode}>{this.props.city}</h1>;
   }
 });
 
@@ -89,18 +93,47 @@ var Forecast = React.createClass({
 });
 
 
+var CityInput = React.createClass({
+  onSubmit(event) {
+    event.preventDefault();
+    this.props.onChangeMode(this.state);
+  },
+
+  getInitialState() {
+    return {
+      name: '',
+      lat: 0,
+      long: 0
+    };
+  },
+
+  update(event) {
+    this.setState({[event.target.name]: event.target.value})
+    console.log(this.state);
+  },
+
+  render() {
+    return <form onSubmit={this.onSubmit}>
+      <p>Name: <input name="name" onChange={this.update}/></p>
+      <p>Lat: <input name="lat" onChange={this.update}/></p>
+      <p>Long: <input name="long" onChange={this.update}/></p>
+      <button type="submit">Change city!</button>
+    </form>
+  }
+})
+
+
 var Application = React.createClass({
   // this is called by React when first instantiating the component
   // the object returned by this will be available as `this.state`
   // in render() and other lifecycle methods
   getInitialState() {
     return {
+      mode: 'selected',
       city: {
         name: "Portland, OR",
-        geo: {
-          lat:    45.52,
-          long: -122.681
-        }
+        lat:    45.52,
+        long: -122.681
       },
       currentConditions: "", // empty, to be filled in by server
       forecasts: [
@@ -111,8 +144,12 @@ var Application = React.createClass({
 
   // when a component is first inserted into the document, this lifecycle method is called:
   componentDidMount() {
+    this.fetchApi();
+  },
+
+  fetchApi() {
     // TODO: replace API_KEY with your own: https://developer.forecast.io/
-    fetch('https://crossorigin.me/https://api.forecast.io/forecast/API_KEY/45.52,-122.681')
+    fetch(`https://crossorigin.me/https://api.forecast.io/forecast/1f694ca864a29d66edcc1ba427b05727/${this.state.city.lat},${this.state.city.long}`)
       .then(function(response) {
         return response.json();
       }).then(json => {
@@ -133,12 +170,28 @@ var Application = React.createClass({
       });
   },
 
+  changeMode(cityData = {}) {
+    var newMode = this.state.mode === 'selected'
+                       ? 'entering'
+                       : 'selected';
+    this.setState({
+      mode: newMode,
+      city: Object.assign({}, this.state.city, cityData)
+    }, () => {
+      if (this.state.mode === 'selected') {
+        this.fetchApi();
+      }
+    });
+  },
+
   // shh, I'm going to use fancy ES6 object syntax. this is the
   // same as render: function() { .. }
   render() {
     return <div>
       {/* This is the way you write comments in JSX */}
-      <Title city={this.state.city.name} />
+      {this.state.mode === 'selected'
+       ? <Title city={this.state.city.name} onChangeMode={this.changeMode}/>
+       : <CityInput onChangeMode={this.changeMode}/>}
       <Description description={this.state.currentConditions} />
       {/* You can pass in JavaScript values as properties by enclosing in {} instead of "" */}
       <Forecasts forecasts={this.state.forecasts}/>

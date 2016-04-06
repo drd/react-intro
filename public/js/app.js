@@ -43,6 +43,8 @@ Component breakdown:
 +--------------------------------------+
 */
 
+var DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 
 var Title = React.createClass({
   render() {
@@ -77,8 +79,11 @@ var Forecasts = React.createClass({
 
 var Forecast = React.createClass({
   render() {
+    var low = Math.round(this.props.low);
+    var high = Math.round(this.props.high);
+
     return <div>
-      {this.props.day}: {this.props.forecast}
+      {this.props.day}: Low: {low} High: {high}
     </div>;
   }
 });
@@ -102,6 +107,30 @@ var Application = React.createClass({
                              // empty, to be filled in by server
       ]
     };
+  },
+
+  // when a component is first inserted into the document, this lifecycle method is called:
+  componentDidMount() {
+    // TODO: replace API_KEY with your own: https://developer.forecast.io/
+    fetch('https://crossorigin.me/https://api.forecast.io/forecast/API_KEY/45.52,-122.681')
+      .then(function(response) {
+        return response.json();
+      }).then(json => {
+        this.setState({
+          currentConditions: `${parseInt(json.currently.temperature)}°F, ${json.currently.summary}`,
+          forecasts: json.daily.data.slice(0, 7).map(function(day) {
+            // construct JS date from time (milliseconds since epoch) and get day index
+            var weekday = new Date(day.time * 1e3).getDay();
+            return {
+              day: DAYS[weekday],
+              low: day.temperatureMin,
+              high: day.temperatureMax
+            };
+          })
+        });
+      }).catch(function(ex) {
+        console.error('parsing failed', ex);
+      });
   },
 
   // shh, I'm going to use fancy ES6 object syntax. this is the
